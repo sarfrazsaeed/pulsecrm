@@ -45,15 +45,20 @@ Local instructions:
 npm run build
 ```
 
-- Start the app on port 3001 (recommended if 3000 is in use):
+
+- Start the app on port 3000 (recommended):
 
 ```bash
-PORT=3001 npm run start
+npm run dev
 ```
 
 - Install Playwright browsers (WebKit may be unsupported on macOS 12):
 
 ```bash
+# If you run the server on a different port, set this when running tests:
+export PLAYWRIGHT_BASE_URL=http://localhost:3001
+npx playwright test --project=chromium
+```
 npx playwright install webkit
 # if webkit fails, install all browsers or run in CI:
 npx playwright install
