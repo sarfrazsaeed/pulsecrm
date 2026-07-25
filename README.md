@@ -34,3 +34,41 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## End-to-end tests (Playwright)
+
+Local instructions:
+
+- Build the app:
+
+```bash
+npm run build
+```
+
+- Start the app on port 3001 (recommended if 3000 is in use):
+
+```bash
+PORT=3001 npm run start
+```
+
+- Install Playwright browsers (WebKit may be unsupported on macOS 12):
+
+```bash
+npx playwright install webkit
+# if webkit fails, install all browsers or run in CI:
+npx playwright install
+```
+
+- Run tests:
+
+```bash
+npm run test:e2e
+```
+
+CI: A GitHub Actions workflow is included at `.github/workflows/playwright.yml` which runs Playwright tests on Ubuntu (installs browsers and runs the suite). If local installs fail on macOS 12, push a branch and let CI run the tests.
+
+Troubleshooting:
+
+- If `npx playwright install webkit` errors with "Playwright does not support webkit on mac12", use CI or install other browsers that are supported on your machine.
+- Ensure the server is reachable at the `baseURL` defined in `playwright.config.ts` (defaults to `http://localhost:3001`).
+
