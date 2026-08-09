@@ -5,7 +5,7 @@ import { LeadScoreCard, LeadScoreError } from "./lead-score-card";
 import type { Contact } from "../types/crm";
 
 export function LeadScorePanel({ contact, onClose }: { contact: Contact; onClose: () => void }) {
-  const { messages, sendMessage, status } = useChat();
+  const { messages, sendMessage, status, regenerate } = useChat();
 
   const runScore = () => {
     const created = new Date(contact.createdAt);
@@ -69,7 +69,17 @@ export function LeadScorePanel({ contact, onClose }: { contact: Contact; onClose
                 return <LeadScoreCard key={i} result={part.output as any} />;
               }
               if (part.state === "output-error") {
-                return <LeadScoreError key={i} message={part.errorText ?? "unknown error"} />;
+                return (
+                  <div key={i}>
+                    <LeadScoreError message={part.errorText ?? "unknown error"} />
+                    <button
+                      onClick={() => regenerate()}
+                      className="mt-2 text-sm font-semibold text-slate-700 underline"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                );
               }
             }
 
