@@ -2,228 +2,30 @@
 
 import { useMemo, useState } from "react";
 import { useCRMStore } from "../store/crm-store";
-import type { ContactDraft, PipelineStage } from "../types/crm";
+import type { Contact, ContactDraft, PipelineStage } from "../types/crm";
+import { LeadScorePanel } from "../components/lead-score-panel";
 
-const sortOptions = [
-  { value: "name", label: "Name" },
-  { value: "company", label: "Company" },
-  { value: "dealValue", label: "Deal value" },
-] as const;
-
-const stageOptions: PipelineStage[] = ["New", "Contacted", "Proposal", "Won", "Lost"];
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+const stages: PipelineStage[] = ["New", "Contacted", "Proposal", "Won", "Lost"];
+const money = (value: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+const stageStyle: Record<PipelineStage, string> = { New: "bg-[#f2f1ff] text-[#5149de]", Contacted: "bg-[#e9fafd] text-[#11859b]", Proposal: "bg-[#fff7e9] text-[#ab6715]", Won: "bg-[#eaf8f2] text-[#117b54]", Lost: "bg-[#fff0f2] text-[#bc3850]" };
 
 export default function ContactsPage() {
-  const contacts = useCRMStore((state) => state.contacts);
-  const addContact = useCRMStore((state) => state.addContact);
-  const [sortKey, setSortKey] = useState<(typeof sortOptions)[number]["value"]>("name");
-  const [draft, setDraft] = useState<ContactDraft>({
-    name: "",
-    company: "",
-    email: "",
-    phone: "",
-    dealValue: 0,
-    stage: "New",
-  });
-  const [message, setMessage] = useState<string | null>(null);
-
-  const sortedContacts = useMemo(() => {
-    const list = [...contacts];
-    list.sort((left, right) => {
-      if (sortKey === "dealValue") {
-        return right.dealValue - left.dealValue;
-      }
-
-      return left[sortKey].localeCompare(right[sortKey]);
-    });
-
-    return list;
-  }, [contacts, sortKey]);
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!draft.name || !draft.company || !draft.email) {
-      setMessage("Please fill in the required contact details.");
-      return;
-    }
-
-    addContact(draft);
-    setDraft({
-      name: "",
-      company: "",
-      email: "",
-      phone: "",
-      dealValue: 0,
-      stage: "New",
-    });
-    setMessage("Contact added to the CRM.");
-  };
-
-  return (
-    <section className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
-          Contacts
-        </p>
-        <h2 className="text-3xl font-semibold text-slate-900">
-          Review your leads and add new ones
-        </h2>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-            <div>
-              <h3 className="font-semibold text-slate-900">All contacts</h3>
-              <p className="text-sm text-slate-500">Sort the table by the fields you care about most.</p>
-            </div>
-            <select
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
-              value={sortKey}
-              onChange={(event) => setSortKey(event.target.value as (typeof sortOptions)[number]["value"])}
-            >
-              {sortOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-left text-slate-600">
-                <tr>
-                  <th className="px-5 py-3 font-medium">Name</th>
-                  <th className="px-5 py-3 font-medium">Company</th>
-                  <th className="px-5 py-3 font-medium">Stage</th>
-                  <th className="px-5 py-3 font-medium">Deal value</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {sortedContacts.map((contact) => (
-                  <tr key={contact.id} className="hover:bg-slate-50">
-                    <td className="px-5 py-3">
-                      <div className="font-semibold text-slate-900">{contact.name}</div>
-                      <div className="text-xs text-slate-500">{contact.email}</div>
-                    </td>
-                    <td className="px-5 py-3 text-slate-600">{contact.company}</td>
-                    <td className="px-5 py-3">
-                      <span className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
-                        {contact.stage}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 font-medium text-slate-900">
-                      {formatCurrency(contact.dealValue)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <form data-testid="add-contact-form" onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">Add contact</h3>
-              <p className="mt-1 text-sm text-slate-500">Capture new leads quickly from a single form.</p>
-            </div>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-              New lead
-            </span>
-          </div>
-
-          <div className="mt-6 space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-sm font-medium text-slate-700">
-                Name
-                <input data-testid="input-name"
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  value={draft.name}
-                  onChange={(event) => setDraft({ ...draft, name: event.target.value })}
-                  required
-                />
-              </label>
-              <label className="text-sm font-medium text-slate-700">
-                Company
-                <input data-testid="input-company"
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  value={draft.company}
-                  onChange={(event) => setDraft({ ...draft, company: event.target.value })}
-                  required
-                />
-              </label>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-sm font-medium text-slate-700">
-                Email
-                <input data-testid="input-email"
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  type="email"
-                  value={draft.email}
-                  onChange={(event) => setDraft({ ...draft, email: event.target.value })}
-                  required
-                />
-              </label>
-              <label className="text-sm font-medium text-slate-700">
-                Phone
-                <input data-testid="input-phone"
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  value={draft.phone}
-                  onChange={(event) => setDraft({ ...draft, phone: event.target.value })}
-                />
-              </label>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-sm font-medium text-slate-700">
-                Deal value
-                <input data-testid="input-dealValue"
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  type="number"
-                  min="0"
-                  value={draft.dealValue}
-                  onChange={(event) => setDraft({ ...draft, dealValue: Number(event.target.value) })}
-                />
-              </label>
-              <label className="text-sm font-medium text-slate-700">
-                Stage
-                <select
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                  value={draft.stage}
-                  onChange={(event) => setDraft({ ...draft, stage: event.target.value as PipelineStage })}
-                >
-                  {stageOptions.map((stage) => (
-                    <option key={stage} value={stage}>
-                      {stage}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            data-testid="save-contact-button"
-            className="mt-6 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
-          >
-            Save contact
-          </button>
-
-          {message ? <p className="mt-3 text-sm text-slate-600">{message}</p> : null}
-        </form>
-      </div>
-    </section>
-  );
+  const contacts = useCRMStore((state) => state.contacts); const addContact = useCRMStore((state) => state.addContact);
+  const [query, setQuery] = useState(""); const [stage, setStage] = useState<"All" | PipelineStage>("All"); const [sort, setSort] = useState<"name" | "company" | "dealValue" | "createdAt">("name");
+  const [selected, setSelected] = useState<Contact | null>(null); const [showForm, setShowForm] = useState(false); const [message, setMessage] = useState<string | null>(null);
+  const [showScore, setShowScore] = useState(false);
+  const [draft, setDraft] = useState<ContactDraft>({ name: "", company: "", email: "", phone: "", dealValue: 0, stage: "New" });
+  const records = useMemo(() => contacts.filter((contact) => (stage === "All" || contact.stage === stage) && `${contact.name} ${contact.company} ${contact.email}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => sort === "dealValue" ? b.dealValue - a.dealValue : a[sort].localeCompare(b[sort])), [contacts, query, sort, stage]);
+  const submit = (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); addContact(draft); setDraft({ name: "", company: "", email: "", phone: "", dealValue: 0, stage: "New" }); setMessage("Contact added to the CRM."); setShowForm(false); };
+  const closeDetail = () => { setSelected(null); setShowScore(false); };
+  return <section className="motion-rise space-y-7"><div className="relative overflow-hidden rounded-3xl border border-white/80 bg-gradient-to-br from-white via-white/85 to-[#e9fafd] px-6 py-7 shadow-[0_18px_45px_rgba(17,133,155,.08)] sm:px-8 sm:py-9 md:flex md:flex-row md:items-end md:justify-between"><div><p className="eyebrow">Relationship directory</p><h1 className="page-title mt-3">Contacts</h1><p className="page-copy mt-3">A complete view of the people behind your pipeline.</p></div><button onClick={() => setShowForm(!showForm)} className="mt-5 rounded-xl bg-[#101827] px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(16,24,39,.18)] transition hover:-translate-y-0.5 hover:bg-[#252f41] md:mt-0">{showForm ? "Close form" : "Add contact"}</button></div>
+    {message && <p role="status" className="rounded-xl border border-[#b8e8d5] bg-[#eaf8f2] px-4 py-3 text-sm font-medium text-[#117b54]">{message}</p>}
+    {showForm && <form data-testid="add-contact-form" onSubmit={submit} className="panel premium-panel grid rounded-2xl p-5 sm:grid-cols-2 lg:grid-cols-3"><h2 className="sr-only">Add contact</h2>{([['name','Name'],['company','Company'],['email','Email'],['phone','Phone']] as const).map(([field,label]) => <label key={field} className="m-2 text-sm font-medium text-[#344054]">{label}<input data-testid={field === 'name' ? 'input-name' : field === 'company' ? 'input-company' : field === 'email' ? 'input-email' : 'input-phone'} required={field !== 'phone'} type={field === 'email' ? 'email' : 'text'} value={draft[field]} onChange={(e) => setDraft({ ...draft, [field]: e.target.value })} className="mt-1.5 w-full rounded-lg border bg-white px-3 py-2.5 text-sm shadow-sm transition focus:border-[#625bf6]" /></label>)}<label className="m-2 text-sm font-medium text-[#344054]">Deal value<input data-testid="input-dealValue" type="number" min="0" value={draft.dealValue} onChange={(e) => setDraft({ ...draft, dealValue: Number(e.target.value) })} className="mt-1.5 w-full rounded-lg border bg-white px-3 py-2.5 text-sm shadow-sm" /></label><label className="m-2 text-sm font-medium text-[#344054]">Stage<select value={draft.stage} onChange={(e) => setDraft({ ...draft, stage: e.target.value as PipelineStage })} className="mt-1.5 w-full rounded-lg border bg-white px-3 py-2.5 text-sm shadow-sm">{stages.map((item) => <option key={item}>{item}</option>)}</select></label><div className="m-2 flex items-end"><button data-testid="save-contact-button" className="w-full rounded-lg bg-[#625bf6] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(98,91,246,.22)] transition hover:-translate-y-0.5 hover:bg-[#5149de]">Save contact</button></div></form>}
+    <div className="panel premium-panel overflow-hidden rounded-2xl"><div className="flex flex-col gap-3 border-b border-[#eef0f5] p-5 md:flex-row md:items-center md:justify-between"><div><h2 className="section-heading">All contacts <span className="ml-1 text-sm font-normal text-[#667085]">{records.length} shown</span></h2></div><div className="flex flex-col gap-2 sm:flex-row"><input aria-label="Search contacts" placeholder="Search people or companies" value={query} onChange={(e) => setQuery(e.target.value)} className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm transition focus:border-[#625bf6]" /><select aria-label="Filter by stage" value={stage} onChange={(e) => setStage(e.target.value as "All" | PipelineStage)} className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm"><option>All</option>{stages.map((item) => <option key={item}>{item}</option>)}</select><select aria-label="Sort contacts" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className="rounded-lg border bg-white px-3 py-2 text-sm shadow-sm"><option value="name">Name</option><option value="company">Company</option><option value="dealValue">Deal value</option><option value="createdAt">Date added</option></select></div></div>
+      <div className="overflow-x-auto"><table className="min-w-full text-left text-sm"><thead className="bg-[#fafbff] text-xs font-semibold tracking-[.1em] text-[#667085] uppercase"><tr><th className="px-5 py-3.5">Person</th><th className="px-5 py-3.5">Stage</th><th className="px-5 py-3.5">Value</th><th className="px-5 py-3.5">Added</th></tr></thead><tbody>{records.map((contact) => <tr key={contact.id} onClick={() => setSelected(contact)} className="table-row cursor-pointer border-t"><td className="px-5 py-4"><p className="font-semibold tracking-[-.015em] text-[#101827]">{contact.name}</p><p className="mt-0.5 text-xs text-[#667085]">{contact.company} · {contact.email}</p></td><td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${stageStyle[contact.stage]}`}>{contact.stage}</span></td><td className="px-5 py-4 font-semibold text-[#101827]">{money(contact.dealValue)}</td><td className="px-5 py-4 text-[#667085]">{new Date(`${contact.createdAt}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</td></tr>)}{records.length === 0 && <tr><td colSpan={4} className="p-5"><div className="empty-state rounded-xl px-5 py-10 text-center"><p className="font-semibold text-[#344054]">No contacts match this view</p><p className="mt-1 text-sm text-[#667085]">Try a different search or filter to see your relationships.</p></div></td></tr>}</tbody></table></div></div>
+    {selected && <div role="dialog" aria-modal="true" aria-labelledby="contact-detail-title" className="fixed inset-0 z-50 flex justify-end bg-[#101827]/25 p-3 sm:p-5" onMouseDown={closeDetail}><aside className="motion-rise h-full w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl" onMouseDown={(e) => e.stopPropagation()}><div className="flex justify-between gap-4"><div><p className="eyebrow">Contact detail</p><h2 id="contact-detail-title" className="mt-3 text-2xl font-bold tracking-[-.04em]">{selected.name}</h2><p className="mt-1 text-sm text-[#667085]">{selected.company}</p></div><button aria-label="Close contact details" onClick={closeDetail} className="size-9 rounded-lg border text-lg">×</button></div><dl className="mt-8 divide-y"><div className="py-4"><dt className="text-xs font-bold tracking-[.12em] text-[#667085] uppercase">Stage</dt><dd className="mt-2"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${stageStyle[selected.stage]}`}>{selected.stage}</span></dd></div><div className="py-4"><dt className="text-xs font-bold tracking-[.12em] text-[#667085] uppercase">Deal value</dt><dd className="mt-2 text-xl font-bold">{money(selected.dealValue)}</dd></div><div className="py-4"><dt className="text-xs font-bold tracking-[.12em] text-[#667085] uppercase">Email</dt><dd className="mt-2 text-sm">{selected.email}</dd></div><div className="py-4"><dt className="text-xs font-bold tracking-[.12em] text-[#667085] uppercase">Phone</dt><dd className="mt-2 text-sm">{selected.phone || "Not recorded"}</dd></div></dl>
+      {!showScore && <button onClick={() => setShowScore(true)} className="mt-4 w-full rounded-lg bg-[#625bf6] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(98,91,246,.22)] transition hover:-translate-y-0.5 hover:bg-[#5149de]">Score with AI</button>}
+      {showScore && <div className="mt-4"><LeadScorePanel contact={selected} onClose={() => setShowScore(false)} /></div>}
+    </aside></div>}
+  </section>;
 }

@@ -1,50 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useCRMStore } from "../store/crm-store";
+import type { PipelineStage } from "../types/crm";
+
+const stages: PipelineStage[] = ["New", "Contacted", "Proposal", "Won", "Lost"];
+const colors: Record<PipelineStage, string> = { New: "#625bf6", Contacted: "#22b8cf", Proposal: "#f4a340", Won: "#19a974", Lost: "#e1586b" };
 
 export default function HealthPage() {
-  const [contactCount, setContactCount] = useState<number | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Read current store state on mount to avoid server/client markup mismatch
-    const state = useCRMStore.getState();
-    setContactCount(state.getContactCount());
-    setLastUpdated(state.lastUpdated);
-
-    // Subscribe to store updates so the health view stays live
-    const unsub = useCRMStore.subscribe((s) => {
-      setContactCount(s.getContactCount());
-      setLastUpdated(s.lastUpdated);
-    });
-
-    return () => unsub();
-  }, []);
-
-  return (
-    <section className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
-          Health check
-        </p>
-        <h2 className="text-3xl font-semibold text-slate-900">
-          Confirm the CRM store is live and responding
-        </h2>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm text-slate-500">Total contacts</p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">{contactCount ?? "—"}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm text-slate-500">Last updated</p>
-          <p className="mt-2 text-lg font-semibold text-slate-900">
-            {lastUpdated ? new Date(lastUpdated).toLocaleString() : "—"}
-          </p>
-        </div>
-      </div>
-    </section>
-  );
+  const contacts = useCRMStore((state) => state.contacts); const lastUpdated = useCRMStore((state) => state.lastUpdated);
+  const fields = ["email", "phone", "company"] as const; const complete = contacts.filter((contact) => fields.every((field) => Boolean(contact[field]))).length;
+  const withoutPhone = contacts.filter((contact) => !contact.phone).length; const percentage = contacts.length ? Math.round((complete / contacts.length) * 100) : 0;
+  return <section className="motion-rise space-y-7"><div className="relative overflow-hidden rounded-3xl border border-white/80 bg-gradient-to-br from-white via-white/90 to-[#eaf8f2] px-6 py-7 shadow-[0_18px_45px_rgba(17,123,84,.08)] sm:px-8 sm:py-9"><p className="eyebrow">Workspace quality</p><h1 className="page-title mt-3">Health</h1><p className="page-copy mt-3 max-w-xl">A quick check of the local CRM data your team relies on.</p></div>
+    <div className="grid gap-4 md:grid-cols-3"><Metric label="Data completeness" value={`${percentage}%`} helper={`${complete} of ${contacts.length} records have key details`} tone="indigo" /><Metric label="Local workspace" value="Healthy" helper="Changes are persisted in this browser" tone="success" /><Metric label="Last updated" value={new Date(lastUpdated).toLocaleDateString(undefined, { month: "short", day: "numeric" })} helper={new Date(lastUpdated).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} tone="cyan" /></div>
+    <div className="grid gap-5 lg:grid-cols-[1.1fr_.9fr]"><section className="panel premium-panel rounded-2xl p-5 sm:p-6"><h2 className="section-heading">Data checks</h2><p className="mt-1 text-sm text-[#667085]">The essentials for a useful contact record.</p><div className="mt-5 divide-y">{[{ title: "Contact details", text: `${complete} contacts include company, email, and phone`, state: complete === contacts.length ? "Complete" : "Review", good: complete === contacts.length }, { title: "Phone coverage", text: withoutPhone ? `${withoutPhone} contact${withoutPhone === 1 ? " is" : "s are"} missing a phone number` : "Every contact has a phone number", state: withoutPhone ? "Review" : "Complete", good: !withoutPhone }, { title: "Pipeline assignment", text: `${contacts.length} contacts are assigned to a pipeline stage`, state: "Complete", good: true }].map((item) => <div key={item.title} className="interactive-surface flex items-center justify-between gap-4 rounded-xl px-3 py-4 -mx-3"><div><h3 className="text-sm font-semibold tracking-[-.015em]">{item.title}</h3><p className="mt-1 text-sm text-[#667085]">{item.text}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${item.good ? "bg-[#eaf8f2] text-[#117b54]" : "bg-[#fff7e9] text-[#ab6715]"}`}>{item.state}</span></div>)}</div></section>
+      <section className="panel premium-panel rounded-2xl p-5 sm:p-6"><h2 className="section-heading">Pipeline coverage</h2><p className="mt-1 text-sm text-[#667085]">How contacts are distributed today.</p><div className="mt-7 space-y-6">{stages.map((stage) => { const count = contacts.filter((contact) => contact.stage === stage).length; const share = contacts.length ? (count / contacts.length) * 100 : 0; return <div key={stage}><div className="flex justify-between text-sm"><span className="flex items-center gap-2 font-medium"><span className="size-2.5 rounded-full shadow-[0_0_0_4px_rgba(255,255,255,.75)]" style={{ background: colors[stage] }} />{stage}</span><span className="text-[#667085]">{count} contacts</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[#eef0f5] shadow-inner"><div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${share}%`, background: colors[stage], boxShadow: `0 0 10px ${colors[stage]}` }} /></div></div>; })}</div></section></div>
+  </section>;
 }
+
+function Metric({ label, value, helper, tone }: { label: string; value: string; helper: string; tone: "indigo" | "success" | "cyan" }) { const toneClass = { indigo: "bg-[#f2f1ff] text-[#5149de]", success: "bg-[#eaf8f2] text-[#117b54]", cyan: "bg-[#e9fafd] text-[#11859b]" }[tone]; return <div className="panel premium-panel interactive-surface metric-card rounded-2xl p-5"><span className={`inline-block rounded-full px-2.5 py-1 text-[.68rem] font-bold tracking-[.08em] uppercase ${toneClass}`}>{label}</span><p className="metric-value mt-5">{value}</p><p className="mt-3 text-sm text-[#667085]">{helper}</p></div>; }

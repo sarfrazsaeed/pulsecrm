@@ -9,6 +9,8 @@ export interface Contact {
   dealValue: number;
   stage: PipelineStage;
   createdAt: string;
+  lastActivityAt?: string;
+  engagementNotes?: string;
 }
 
 export interface ContactDraft {
@@ -18,4 +20,6 @@ export interface ContactDraft {
   phone: string;
   dealValue: number;
   stage: PipelineStage;
+  lastActivityAt?: string;
+  engagementNotes?: string;
 }

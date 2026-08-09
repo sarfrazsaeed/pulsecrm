@@ -1,62 +1,32 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "PulseCRM",
-  description: "A lightweight CRM and sales pipeline dashboard",
-};
+export const metadata: Metadata = { title: "PulseCRM — Sales workspace", description: "A thoughtful sales pipeline workspace" };
 
 const navItems = [
-  { href: "/", label: "Overview" },
-  { href: "/pipeline", label: "Pipeline" },
-  { href: "/contacts", label: "Contacts" },
-  { href: "/analytics", label: "Analytics" },
-  { href: "/health", label: "Health" },
+  { href: "/", label: "Overview" }, { href: "/pipeline", label: "Pipeline" },
+  { href: "/contacts", label: "Contacts" }, { href: "/analytics", label: "Analytics" }, { href: "/health", label: "Health" },
 ];
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full bg-slate-50 text-slate-900">
-        <div className="min-h-screen">
-          <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
-            <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
-                  PulseCRM
-                </p>
-                <h1 className="text-lg font-semibold">Sales pipeline workspace</h1>
-              </div>
-              <nav className="flex flex-wrap gap-3 text-sm font-medium text-slate-600">
-                {navItems.map((item) => (
-                  <a key={item.href} href={item.href} className="rounded-full px-3 py-2 transition hover:bg-slate-100 hover:text-slate-900">
-                    {item.label}
-                  </a>
-                ))}
-              </nav>
-            </div>
-          </header>
-          <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
-        </div>
-      </body>
-    </html>
-  );
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  return <html lang="en" className="h-full antialiased">
+    <body className="min-h-full">
+      <div className="app-shell min-h-screen">
+        <header className="sticky top-0 z-30 border-b border-[#e6e8f0]/80 bg-[#f7f8fc]/85 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-4 py-3 sm:px-6">
+            <Link href="/" className="flex shrink-0 items-center gap-2.5 rounded-lg">
+              <span className="grid size-8 place-items-center rounded-xl bg-[#101827] text-sm font-bold text-white shadow-lg shadow-[#101827]/15">P</span>
+              <span className="hidden text-sm font-bold tracking-[-.03em] text-[#101827] sm:block">PulseCRM</span>
+            </Link>
+            <nav aria-label="Primary navigation" className="flex max-w-full items-center gap-1 overflow-x-auto text-sm font-medium whitespace-nowrap text-[#667085]">
+              {navItems.map((item) => <Link key={item.href} href={item.href} className="rounded-lg px-3 py-2 transition-colors hover:bg-white hover:text-[#101827] focus-visible:bg-white">{item.label}</Link>)}
+            </nav>
+            <span className="hidden items-center gap-2 text-xs font-medium text-[#667085] lg:flex"><span className="size-2 rounded-full bg-[#19a974]" /> Workspace live</span>
+          </div>
+        </header>
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10">{children}</main>
+      </div>
+    </body>
+  </html>;
 }

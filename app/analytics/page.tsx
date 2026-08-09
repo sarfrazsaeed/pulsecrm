@@ -1,125 +1,32 @@
 "use client";
 
-import { useMemo } from "react";
 import { Bar, Line } from "react-chartjs-2";
 import { useCRMStore } from "../store/crm-store";
 import type { PipelineStage } from "../types/crm";
 import "chart.js/auto";
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+const stages: PipelineStage[] = ["New", "Contacted", "Proposal", "Won", "Lost"];
+const colors = ["#625bf6", "#22b8cf", "#f4a340", "#19a974", "#e1586b"];
+const money = (value: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
 
 export default function AnalyticsPage() {
   const contacts = useCRMStore((state) => state.contacts);
-
-  const pipelineStages: PipelineStage[] = ["New", "Contacted", "Proposal", "Won", "Lost"];
-
-  const dealValueByStage = useMemo(
-    () =>
-      pipelineStages.map((stage) => ({
-        stage,
-        total: contacts.filter((c) => c.stage === stage).reduce((sum, c) => sum + c.dealValue, 0),
-      })),
-    [contacts],
-  );
-
-  const dealsByMonth = useMemo(() => {
-    const monthlyCounts = new Map<string, number>();
-
-    contacts.forEach((contact) => {
-      const month = contact.createdAt.slice(0, 7);
-      monthlyCounts.set(month, (monthlyCounts.get(month) ?? 0) + 1);
-    });
-
-    return Array.from(monthlyCounts.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, count]) => ({ month, count }));
-  }, [contacts]);
-
-  const barData = useMemo(
-    () => ({
-      labels: dealValueByStage.map((item) => item.stage),
-      datasets: [
-        {
-          label: "Deal value",
-          data: dealValueByStage.map((item) => item.total),
-          backgroundColor: "rgba(14, 165, 233, 0.7)",
-          borderRadius: 6,
-        },
-      ],
-    }),
-    [dealValueByStage],
-  );
-
-  const lineData = useMemo(
-    () => ({
-      labels: dealsByMonth.map((item) => item.month),
-      datasets: [
-        {
-          label: "Deals created",
-          data: dealsByMonth.map((item) => item.count),
-          borderColor: "rgba(16, 185, 129, 1)",
-          backgroundColor: "rgba(16, 185, 129, 0.2)",
-          tension: 0.35,
-          fill: true,
-        },
-      ],
-    }),
-    [dealsByMonth],
-  );
-
-  return (
-    <section className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
-          Analytics
-        </p>
-        <h2 className="text-3xl font-semibold text-slate-900">
-          Track revenue movement and momentum
-        </h2>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <div data-testid="metric-best-stage" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Best stage</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">
-            {dealValueByStage.sort((left, right) => right.total - left.total)[0]?.stage ?? "—"}
-          </p>
-        </div>
-        <div data-testid="metric-total-value" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Total pipeline value</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">
-            {formatCurrency(dealValueByStage.reduce((sum, item) => sum + item.total, 0))}
-          </p>
-        </div>
-        <div data-testid="metric-peak-month" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Peak month</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">
-            {dealsByMonth.sort((left, right) => right.count - left.count)[0]?.month ?? "—"}
-          </p>
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900">Deal value by stage</h3>
-          <div className="mt-4 h-72">
-            <Bar data={barData} options={{ responsive: true, maintainAspectRatio: false }} />
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900">Deals created per month</h3>
-          <div className="mt-4 h-72">
-            <Line data={lineData} options={{ responsive: true, maintainAspectRatio: false }} />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
+  const getDealValueByStage = useCRMStore((state) => state.getDealValueByStage);
+  const getDealsCreatedPerMonth = useCRMStore((state) => state.getDealsCreatedPerMonth);
+  const values = getDealValueByStage(); const monthly = getDealsCreatedPerMonth();
+  const total = values.reduce((sum, item) => sum + item.total, 0); const won = values.find((item) => item.stage === "Won")?.total ?? 0;
+  const active = values.filter((item) => !["Won", "Lost"].includes(item.stage)).reduce((sum, item) => sum + item.total, 0);
+  const best = [...values].sort((a, b) => b.total - a.total)[0]?.stage ?? "—";
+  const barData = { labels: values.map((item) => item.stage), datasets: [{ label: "Deal value", data: values.map((item) => item.total), backgroundColor: colors, borderRadius: 8, borderSkipped: false }] };
+  const lineData = { labels: monthly.map((item) => new Date(`${item.month}-01T12:00:00`).toLocaleDateString(undefined, { month: "short" })), datasets: [{ label: "Deals created", data: monthly.map((item) => item.count), borderColor: "#625bf6", backgroundColor: "rgba(98,91,246,.10)", pointBackgroundColor: "#625bf6", pointRadius: 4, tension: .35, fill: true }] };
+  const chartOptions = { responsive: true, maintainAspectRatio: false, animation: { duration: 750, easing: "easeOutQuart" as const }, plugins: { legend: { display: false }, tooltip: { backgroundColor: "#101827", padding: 14, cornerRadius: 10, titleColor: "#ffffff", bodyColor: "#d9dce7", titleFont: { weight: 700 }, bodyFont: { weight: 600 }, displayColors: false } }, scales: { x: { grid: { display: false }, border: { display: false }, ticks: { color: "#667085", font: { size: 11, weight: 600 }, padding: 10 } }, y: { border: { display: false }, grid: { color: "rgba(230,232,240,.8)" }, ticks: { color: "#667085", font: { size: 11, weight: 600 }, padding: 10 } } } };
+  return <section className="motion-rise space-y-7"><div className="relative overflow-hidden rounded-3xl border border-white/80 bg-gradient-to-br from-white via-white/90 to-[#f2f1ff] px-6 py-7 shadow-[0_18px_45px_rgba(81,73,222,.08)] sm:px-8 sm:py-9"><p className="eyebrow">Revenue intelligence</p><h1 className="page-title mt-3">Analytics</h1><p className="page-copy mt-3 max-w-xl">A practical read on the value and momentum currently in your workspace.</p></div>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Total pipeline value" value={money(total)} testId="metric-total-value" /><Metric label="Active pipeline" value={money(active)} /><Metric label="Won value" value={money(won)} /><Metric label="Leading stage" value={best} testId="metric-best-stage" /></div>
+    <div className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]"><section className="panel premium-panel rounded-2xl p-5 sm:p-6"><div className="flex items-start justify-between"><div><h2 className="section-heading">Value by stage</h2><p className="mt-1 text-sm text-[#667085]">Where deal value is currently concentrated.</p></div><span className="rounded-full bg-[#f2f1ff] px-2.5 py-1 text-xs font-semibold text-[#5149de]">Live data</span></div><div className="bar-entrance mt-6 h-72">{contacts.length ? <Bar data={barData} options={{ ...chartOptions, scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, ticks: { ...chartOptions.scales.y.ticks, callback: (tick) => money(Number(tick)) } } } }} /> : <EmptyChart />}</div></section>
+      <section className="panel premium-panel rounded-2xl p-5 sm:p-6"><h2 className="section-heading">Stage mix</h2><p className="mt-1 text-sm text-[#667085]">Opportunity count and value at a glance.</p><div className="mt-6 space-y-5">{stages.map((stage, index) => { const items = contacts.filter((item) => item.stage === stage); const value = values.find((item) => item.stage === stage)?.total ?? 0; const share = total ? (value / total) * 100 : 0; return <div key={stage}><div className="flex justify-between text-sm"><span className="flex items-center gap-2 font-medium"><span className="size-2.5 rounded-full shadow-[0_0_0_4px_rgba(255,255,255,.7)]" style={{ background: colors[index] }} />{stage} <span className="text-[#667085]">{items.length}</span></span><span className="font-semibold">{money(value)}</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-[#eef0f5] shadow-inner"><div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${share}%`, background: colors[index], boxShadow: `0 0 10px ${colors[index]}` }} /></div></div>; })}</div></section></div>
+    <section className="panel premium-panel rounded-2xl p-5 sm:p-6"><div><h2 className="section-heading">New opportunity momentum</h2><p className="mt-1 text-sm text-[#667085]">Contacts created by month.</p></div><div className="bar-entrance mt-6 h-72">{contacts.length ? <Line data={lineData} options={chartOptions} /> : <EmptyChart />}</div></section>
+  </section>;
 }
+
+function Metric({ label, value, testId }: { label: string; value: string; testId?: string }) { return <div data-testid={testId} className="panel premium-panel interactive-surface metric-card rounded-2xl p-5"><p className="section-kicker">{label}</p><p className="metric-value mt-4">{value}</p></div>; }
+function EmptyChart() { return <div className="empty-state grid h-full place-items-center rounded-2xl px-5 text-center"><div><p className="font-semibold text-[#344054]">Insights will appear here</p><p className="mt-1 text-sm text-[#667085]">Add your first contact to begin tracking momentum.</p></div></div>; }

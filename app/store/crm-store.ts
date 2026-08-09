@@ -23,6 +23,8 @@ const initialContacts: Contact[] = [
     dealValue: 4200,
     stage: "New",
     createdAt: "2026-01-12",
+    lastActivityAt: "2026-01-14",
+    engagementNotes: "Opened 2 emails, no meeting booked yet.",
   },
   {
     id: "contact-2",
@@ -33,6 +35,8 @@ const initialContacts: Contact[] = [
     dealValue: 6800,
     stage: "Contacted",
     createdAt: "2026-01-18",
+    lastActivityAt: "2026-02-01",
+    engagementNotes: "Discovery call completed, budget confirmed at $6.8k.",
   },
   {
     id: "contact-3",
@@ -43,6 +47,8 @@ const initialContacts: Contact[] = [
     dealValue: 3100,
     stage: "Proposal",
     createdAt: "2026-02-04",
+    lastActivityAt: "2026-02-20",
+    engagementNotes: "Proposal sent, no reply in 12 days.",
   },
   {
     id: "contact-4",

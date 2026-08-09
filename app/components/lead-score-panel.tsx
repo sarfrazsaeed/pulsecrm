@@ -1,0 +1,82 @@
+"use client";
+
+import { useChat } from "@ai-sdk/react";
+import { LeadScoreCard, LeadScoreError } from "./lead-score-card";
+import type { Contact } from "../types/crm";
+
+export function LeadScorePanel({ contact, onClose }: { contact: Contact; onClose: () => void }) {
+  const { messages, sendMessage, status } = useChat();
+
+  const runScore = () => {
+    const created = new Date(contact.createdAt);
+    const lastActivity = contact.lastActivityAt ? new Date(contact.lastActivityAt) : created;
+    const now = new Date();
+    const daysSinceCreated = Math.round((now.getTime() - created.getTime()) / 86400000);
+    const daysSinceLastActivity = Math.round((now.getTime() - lastActivity.getTime()) / 86400000);
+
+    sendMessage({
+      text: `Score this lead: ${contact.name} at ${contact.company}. Deal value $${contact.dealValue}, stage "${contact.stage}", created ${daysSinceCreated} days ago, last activity ${daysSinceLastActivity} days ago. Notes: ${contact.engagementNotes ?? "none"}.`,
+    });
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-slate-900">AI Lead Score — {contact.name}</h3>
+        <button onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">
+          Close
+        </button>
+      </div>
+
+      {messages.length === 0 ? (
+        <button
+          onClick={runScore}
+          disabled={status === "streaming" || status === "submitted"}
+          className="mt-4 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+        >
+          Score with AI
+        </button>
+      ) : null}
+
+      <div className="mt-4 space-y-3">
+        {messages.map((message) =>
+          message.parts.map((part, i) => {
+            if (part.type === "text") {
+              return (
+                <p key={i} className="text-sm text-slate-600">
+                  {part.text}
+                </p>
+              );
+            }
+
+            if (part.type === "tool-scoreLead") {
+              if (part.state === "input-streaming") {
+                return (
+                  <div key={i} className="animate-pulse rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+                    Analyzing {contact.name}...
+                  </div>
+                );
+              }
+              if (part.state === "input-available") {
+                return (
+                  <div key={i} className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+                    <span className="h-2 w-2 animate-ping rounded-full bg-sky-500" />
+                    Scoring lead against your pipeline...
+                  </div>
+                );
+              }
+              if (part.state === "output-available") {
+                return <LeadScoreCard key={i} result={part.output as any} />;
+              }
+              if (part.state === "output-error") {
+                return <LeadScoreError key={i} message={part.errorText ?? "unknown error"} />;
+              }
+            }
+
+            return null;
+          })
+        )}
+      </div>
+    </div>
+  );
+}
