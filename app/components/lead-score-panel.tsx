@@ -5,7 +5,7 @@ import { LeadScoreCard, LeadScoreError } from "./lead-score-card";
 import type { Contact } from "../types/crm";
 
 export function LeadScorePanel({ contact, onClose }: { contact: Contact; onClose: () => void }) {
-  const { messages, sendMessage, status, regenerate } = useChat();
+ const { messages, sendMessage, status, regenerate, error } = useChat();
 
   const runScore = () => {
     const created = new Date(contact.createdAt);
@@ -37,6 +37,17 @@ export function LeadScorePanel({ contact, onClose }: { contact: Contact; onClose
           Score with AI
         </button>
       ) : null}
+      {error && messages.length === 0 && (
+        <div className="mt-4">
+          <LeadScoreError message="Couldn't reach the AI service — check your connection." />
+          <button
+            onClick={() => runScore()}
+            className="mt-2 text-sm font-semibold text-slate-700 underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
 
       <div className="mt-4 space-y-3">
         {messages.map((message) =>
