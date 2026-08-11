@@ -32,9 +32,16 @@ export function LeadScorePanel({ contact, onClose }: { contact: Contact; onClose
         <button
           onClick={runScore}
           disabled={status === "streaming" || status === "submitted"}
-          className="mt-4 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+          className={`ai-score-btn ${status === "streaming" || status === "submitted" ? "is-loading" : ""} ${error ? "is-error" : ""}`}
         >
-          Score with AI
+          <span className="btn-label">
+            {status === "streaming" || status === "submitted"
+              ? "Scoring..."
+              : error
+              ? "Try again"
+              : "Score with AI"}
+          </span>
+          {(status === "streaming" || status === "submitted") && <span className="btn-spinner" aria-hidden="true" />}
         </button>
       ) : null}
       {error && messages.length === 0 && (

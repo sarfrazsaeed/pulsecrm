@@ -71,3 +71,45 @@ button, a, input, select { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+.ai-score-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 1rem;
+  padding: 10px 18px;
+  border-radius: 9999px;
+  background: #101827;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  border: 2px solid transparent;
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 200ms ease, border-color 200ms ease;
+  cursor: pointer;
+}
+.ai-score-btn:hover:not(:disabled) { transform: translateY(-1px); background: #252f41; }
+.ai-score-btn:focus-visible { outline: none; border-color: #625bf6; box-shadow: 0 0 0 3px rgba(98,91,246,.25); }
+.ai-score-btn.is-loading { background: #344054; cursor: wait; }
+.ai-score-btn.is-error { animation: btn-shake 320ms ease; border-color: #f04438; }
+.ai-score-btn:disabled { opacity: 0.85; }
+
+.btn-spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: btn-spin 700ms linear infinite;
+}
+
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+@keyframes btn-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-score-btn, .btn-spinner { animation: none !important; transition: none !important; }
+  .ai-score-btn:hover:not(:disabled) { transform: none; }
+}
