@@ -57,6 +57,19 @@ function scoreLead(input: {
 
   return { score, tier, reasons, nextAction };
 }
+function listStaleLeads(contacts: Array<{
+  id: string; name: string; company: string; stage: string; lastActivityAt?: string; createdAt: string;
+}>) {
+  const now = new Date();
+  return contacts
+    .filter((c) => c.stage !== "Won" && c.stage !== "Lost")
+    .map((c) => {
+      const last = c.lastActivityAt ? new Date(c.lastActivityAt) : new Date(c.createdAt);
+      const daysSinceActivity = Math.round((now.getTime() - last.getTime()) / 86400000);
+      return { ...c, daysSinceActivity };
+    })
+    .filter((c) => c.daysSinceActivity >= 7);
+}
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
@@ -65,7 +78,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: google("gemini-2.0-flash"),
     system:
-      "You are a CRM assistant. When the user asks you to score a lead, call the scoreLead tool with the contact's details extracted from their message. After the tool returns, briefly summarize the result in one sentence.",
+      "You are a CRM assistant. When the user asks you to score a lead, call the scoreLead tool. When the user asks you to review leads for follow-up, first call listStaleLeads with the contacts they provide, then call draftFollowUpEmail for each stale lead returned. Never claim an email was sent — you only draft. After tools return, briefly summarize what you found in one or two sentences.",
     messages: modelMessages,
     tools: {
       scoreLead: tool({
@@ -89,6 +102,39 @@ export async function POST(req: Request) {
         execute: async (input) => {
           const result = scoreLead(input);
           return { contactName: input.contactName, ...result };
+        },
+      }),
+      listStaleLeads: tool({
+        description: "List CRM contacts that are stale (7+ days without activity) and not already closed.",
+        inputSchema: z.object({
+          contacts: z.array(z.object({
+            id: z.string(),
+            name: z.string(),
+            company: z.string(),
+            stage: z.enum(["New", "Contacted", "Proposal", "Won", "Lost"]),
+            lastActivityAt: z.string().optional(),
+            createdAt: z.string(),
+          })),
+        }),
+        execute: async ({ contacts }) => ({ staleLeads: listStaleLeads(contacts) }),
+      }),
+      draftFollowUpEmail: tool({
+        description: "Draft a short, specific follow-up email for one CRM lead based on their real stage and context.",
+        inputSchema: z.object({
+          contactName: z.string(),
+          company: z.string(),
+          stage: z.string(),
+          engagementNotes: z.string().optional(),
+        }),
+        execute: async ({ contactName, company, stage, engagementNotes }) => {
+          return {
+            contactName,
+            subject: `Following up — ${company}`,
+            body:
+              `Hi ${contactName},\n\nWanted to check in since we last connected about ${company}'s ` +
+              `${stage.toLowerCase()} — ${engagementNotes ?? "let me know if now's a good time to pick this back up."}\n\n` +
+              `Happy to jump on a quick call if useful.\n\nBest,\nSarfraz`,
+          };
         },
       }),
     },
