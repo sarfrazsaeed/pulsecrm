@@ -35,7 +35,28 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
-## End-to-end tests (Playwright)
+## Testing
+
+This project has two test layers: Vitest + React Testing Library for
+component-level tests, and Playwright for end-to-end tests.
+
+### Unit / component tests (Vitest)
+
+Run the unit test suite:
+
+```bash
+npm run test
+```
+
+This covers:
+- `LeadScorePanel` — the AI chat message renderer, across pending, streaming,
+  tool-result, and error states (mocks the `@ai-sdk/react` `useChat` hook,
+  never calls the real AI route)
+- `LeadScoreCard` / `LeadScoreError` — the tool-result and error display
+  components
+- The "Add contact" form — required-field validation and successful submission
+
+### End-to-end tests (Playwright)
 
 Local instructions:
 
@@ -44,7 +65,6 @@ Local instructions:
 ```bash
 npm run build
 ```
-
 
 - Start the app on port 3000 (recommended):
 
@@ -55,25 +75,30 @@ npm run dev
 - Install Playwright browsers (WebKit may be unsupported on macOS 12):
 
 ```bash
-# If you run the server on a different port, set this when running tests:
-export PLAYWRIGHT_BASE_URL=http://localhost:3001
-npx playwright test --project=chromium
-```
-npx playwright install webkit
-# if webkit fails, install all browsers or run in CI:
-npx playwright install
+npx playwright install --with-deps
+# if webkit fails, install only chromium:
+npx playwright install chromium
 ```
 
 - Run tests:
 
 ```bash
+# If you run the server on a different port, set this first:
+export PLAYWRIGHT_BASE_URL=http://localhost:3001
+
 npm run test:e2e
 ```
 
-CI: A GitHub Actions workflow is included at `.github/workflows/playwright.yml` which runs Playwright tests on Ubuntu (installs browsers and runs the suite). If local installs fail on macOS 12, push a branch and let CI run the tests.
+### CI
+
+A GitHub Actions workflow at `.github/workflows/playwright.yml` runs both
+suites on every push and pull request: a `unit` job runs `npm run test`, and
+an `e2e` job builds the app and runs the Playwright suite. Both must pass
+before merging.
 
 Troubleshooting:
 
-- If `npx playwright install webkit` errors with "Playwright does not support webkit on mac12", use CI or install other browsers that are supported on your machine.
-- Ensure the server is reachable at the `baseURL` defined in `playwright.config.ts` (defaults to `http://localhost:3001`).
-
+- If `npx playwright install webkit` errors with "Playwright does not support
+  webkit on mac12", use CI or install only chromium locally.
+- Ensure the server is reachable at the `baseURL` defined in
+  `playwright.config.ts` (defaults to `http://localhost:3000`).
