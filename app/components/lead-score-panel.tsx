@@ -28,7 +28,7 @@ export function LeadScorePanel({ contact, onClose }: { contact: Contact; onClose
         </button>
       </div>
 
-      {messages.length === 0 ? (
+      {messages.length === 0 && !error ? (
         <button
           onClick={runScore}
           disabled={status === "streaming" || status === "submitted"}
