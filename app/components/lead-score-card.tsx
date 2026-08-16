@@ -20,7 +20,7 @@ export function LeadScoreCard({ result }: { result: LeadScoreResult }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center gap-4">
-        <svg width="80" height="80" viewBox="0 0 80 80" className="shrink-0">
+        <svg width="80" height="80" viewBox="0 0 80 80" className="shrink-0" role="img" aria-label={`Lead score ${result.score} out of 100, ${result.tier} tier`}>
           <circle cx="40" cy="40" r="34" fill="none" stroke="#e2e8f0" strokeWidth="8" />
           <circle
             cx="40"
